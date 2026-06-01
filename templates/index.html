@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NutriOpt — Optimasi Menu Makanan Harian</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0f1117;--bg2:#1a1d2e;--bg3:#242740;--card:#1e2235;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.14);
+  --accent:#6c63ff;--accent2:#ff6584;--accent3:#43e97b;--accent4:#fa8231;
+  --text:#e8eaf6;--muted:#8b8fa8;--muted2:#5c6080;
+  --success:#43e97b;--warn:#fa8231;--danger:#ff4757;
+  --radius:12px;--radius-sm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* NAVBAR */
+.navbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;backdrop-filter:blur(10px)}
+.navbar-brand{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700;letter-spacing:-.3px}
+.logo-box{width:34px;height:34px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 4px 12px rgba(108,99,255,.4)}
+.nav-tabs{display:flex;gap:2px;background:var(--bg3);padding:4px;border-radius:10px}
+.nav-tab{padding:6px 16px;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:none;color:var(--muted);transition:all .2s}
+.nav-tab.active{background:var(--card);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.nav-tab:hover:not(.active){color:var(--text)}
+
+/* CONTAINER */
+.container{max-width:1240px;margin:0 auto;padding:24px 20px}
+.grid-2{display:grid;grid-template-columns:300px 1fr;gap:20px;align-items:start}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.grid-5{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:18px}
+.card+.card{margin-top:14px}
+.card-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:14px;display:flex;align-items:center;gap:7px}
+.card-title .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block}
+
+/* FORM */
+.form-group{margin-bottom:13px}
+.form-label{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:5px}
+.form-label span{color:var(--text);font-weight:600;font-size:12px}
+input[type=range]{width:100%;height:4px;accent-color:var(--accent);cursor:pointer;background:var(--bg3);border-radius:2px}
+select{width:100%;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:13px;transition:border .2s}
+select:focus{outline:none;border-color:var(--accent)}
+.radio-group{display:flex;gap:5px;flex-wrap:wrap}
+.radio-btn{padding:5px 12px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--muted);transition:all .15s;user-select:none}
+.radio-btn.active{background:rgba(108,99,255,.2);border-color:var(--accent);color:var(--accent)}
+.radio-btn:hover:not(.active){border-color:var(--border2);color:var(--text)}
+.section-label{font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.7px;margin-bottom:9px;margin-top:4px}
+.divider{height:1px;background:var(--border);margin:14px 0}
+
+/* ALGO PARAMS */
+.algo-params{display:none;animation:fadeIn .2s ease}
+.algo-params.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+
+/* BUTTONS */
+.btn{padding:10px 18px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:7px;width:100%}
+.btn-primary{background:linear-gradient(135deg,#6c63ff,#9c56ff);color:#fff;box-shadow:0 4px 14px rgba(108,99,255,.35)}
+.btn-primary:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 20px rgba(108,99,255,.45)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-success{background:linear-gradient(135deg,#43e97b,#38ada9);color:#0f1117;box-shadow:0 4px 14px rgba(67,233,123,.25);margin-top:8px}
+.btn-success:hover{transform:translateY(-1px)}
+.btn-outline{background:none;border:1px solid var(--border2);color:var(--muted)}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+
+/* METRIC CARDS */
+.metric-card{background:var(--bg3);border-radius:10px;padding:14px 12px;border:1px solid var(--border);transition:border .2s}
+.metric-card:hover{border-color:var(--border2)}
+.metric-val{font-size:20px;font-weight:700;letter-spacing:-.5px}
+.metric-lbl{font-size:11px;color:var(--muted);margin-top:3px}
+.metric-sub{font-size:10px;color:var(--muted2);margin-top:2px}
+.metric-bar{height:3px;border-radius:2px;margin-top:10px;background:rgba(255,255,255,.07);overflow:hidden}
+.metric-bar-fill{height:100%;border-radius:2px;transition:width 1s cubic-bezier(.4,0,.2,1)}
+
+/* NUTRISI GRID */
+.nutr-item{background:var(--bg3);border-radius:10px;padding:12px 8px;text-align:center;border:1px solid var(--border);position:relative;overflow:hidden}
+.nutr-item::after{content:'';position:absolute;bottom:0;left:0;height:3px;width:var(--fill,0%);background:var(--fill-color,#6c63ff);border-radius:0 2px 0 0;transition:width 1s ease}
+.nutr-val{font-size:17px;font-weight:700}
+.nutr-lbl{font-size:10px;color:var(--muted);margin-top:2px;font-weight:600}
+.nutr-tgt{font-size:10px;color:var(--muted2);margin-top:1px}
+.nutr-pct{font-size:10px;font-weight:700;margin-top:4px}
+.good{color:var(--success)}.warn{color:var(--warn)}.bad{color:var(--danger)}
+
+/* MENU DISPLAY */
+.meal-wrap{margin-bottom:13px;padding-bottom:13px;border-bottom:1px solid var(--border)}
+.meal-wrap:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.meal-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.meal-hdr-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;background:var(--bg3)}
+.meal-hdr-title{font-size:12px;font-weight:600;color:var(--text)}
+.meal-hdr-cal{font-size:11px;color:var(--muted);margin-left:auto}
+.meal-items{display:flex;flex-wrap:wrap;gap:7px}
+.food-chip{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 11px;display:flex;flex-direction:column;gap:2px;min-width:150px;transition:border .15s}
+.food-chip:hover{border-color:var(--border2)}
+.food-name{font-size:12px;font-weight:500;color:var(--text)}
+.food-meta{font-size:10px;color:var(--muted);display:flex;gap:8px}
+.food-meta .kcal{color:var(--accent4)}
+.food-meta .price{color:var(--accent3)}
+.food-meta .prot{color:var(--accent)}
+
+/* CHART */
+.chart-wrap{position:relative}
+
+/* TABLE */
+.data-table{width:100%;border-collapse:collapse;font-size:12px}
+.data-table th{padding:9px 12px;text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted2);border-bottom:1px solid var(--border)}
+.data-table th:first-child{text-align:left}
+.data-table td{padding:9px 12px;text-align:center;border-bottom:1px solid var(--border)}
+.data-table td:first-child{text-align:left;color:var(--muted);font-size:12px}
+.data-table tr:last-child td{border-bottom:none}
+.data-table .winner{font-weight:700}
+.algo-hc{color:#60a5fa}.algo-sa{color:#f87171}.algo-ga{color:#a78bfa}
+
+/* BADGE */
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-purple{background:rgba(108,99,255,.15);color:var(--accent)}
+.badge-green{background:rgba(67,233,123,.15);color:var(--success)}
+.badge-orange{background:rgba(250,130,49,.15);color:var(--warn)}
+.badge-red{background:rgba(255,71,87,.15);color:var(--danger)}
+.badge-blue{background:rgba(96,165,250,.15);color:#60a5fa}
+
+/* LOADING */
+.loading{display:none;flex-direction:column;align-items:center;gap:14px;padding:48px 20px}
+.loading.active{display:flex}
+.spinner{width:38px;height:38px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+.loading-text{font-size:13px;color:var(--muted);text-align:center;line-height:1.6}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* PAGE */
+.page{display:none}.page.active{display:block}
+
+/* HERO */
+.hero{background:linear-gradient(135deg,rgba(108,99,255,.15),rgba(255,101,132,.08));border:1px solid rgba(108,99,255,.25);border-radius:var(--radius);padding:24px 28px;margin-bottom:20px;display:flex;align-items:center;gap:20px}
+.hero-icon{font-size:52px;flex-shrink:0}
+.hero h1{font-size:20px;font-weight:700;letter-spacing:-.3px}
+.hero p{color:var(--muted);font-size:13px;margin-top:5px;line-height:1.6}
+.hero-chips{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+
+/* INFO FOOD TABLE */
+.food-table-wrap{overflow-x:auto}
+.food-table{width:100%;border-collapse:collapse;font-size:12px}
+.food-table th{padding:9px 10px;text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted2);border-bottom:1px solid var(--border);white-space:nowrap}
+.food-table th:first-child{text-align:left}
+.food-table td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--border);color:var(--muted)}
+.food-table td:first-child{text-align:left;color:var(--text);font-weight:500}
+.food-table tr:hover td{background:rgba(255,255,255,.02)}
+.food-table tr:last-child td{border-bottom:none}
+.waktu-chip{display:inline-block;padding:2px 7px;border-radius:5px;font-size:10px;font-weight:600;background:var(--bg3);color:var(--muted);margin:1px}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* TOOLTIP STEP */
+.step-list{display:flex;flex-direction:column;gap:10px;margin-top:4px}
+.step-item{display:flex;gap:12px;align-items:flex-start}
+.step-num{width:22px;height:22px;border-radius:50%;background:rgba(108,99,255,.2);border:1px solid var(--accent);color:var(--accent);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.step-text{font-size:12px;color:var(--muted);line-height:1.6}
+
+/* RESPONSIVE */
+@media(max-width:860px){
+  .grid-2{grid-template-columns:1fr}
+  .grid-4{grid-template-columns:repeat(2,1fr)}
+  .grid-5{grid-template-columns:repeat(3,1fr)}
+  .hero{flex-direction:column;text-align:center}
+}
+@media(max-width:520px){
+  .grid-3{grid-template-columns:1fr}
+  .grid-5{grid-template-columns:repeat(2,1fr)}
+  .nav-tab{padding:6px 10px;font-size:12px}
+}
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="navbar-brand">
+    <div class="logo-box">🥗</div>
+    <span>NutriOpt</span>
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('optimizer')">🚀 Optimizer</button>
+    <button class="nav-tab" onclick="showPage('compare')">📊 Perbandingan</button>
+    <button class="nav-tab" onclick="showPage('foods')">🍽️ Database</button>
+    <button class="nav-tab" onclick="showPage('about')">📖 Tentang</button>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════ PAGE OPTIMIZER -->
+<div id="page-optimizer" class="page active">
+<div class="container">
+  <div class="hero">
+    <div class="hero-icon">🥗</div>
+    <div>
+      <h1>Simulasi Optimasi Menu Makanan Harian</h1>
+      <p>Temukan kombinasi menu optimal yang memenuhi kebutuhan nutrisi harianmu.<br>Didukung tiga algoritma optimasi berbasis Kecerdasan Buatan.</p>
+      <div class="hero-chips">
+        <span class="badge badge-blue">⛰️ Hill Climbing</span>
+        <span class="badge badge-red">🌡️ Simulated Annealing</span>
+        <span class="badge badge-purple">🧬 Genetic Algorithm</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <!-- SIDEBAR -->
+    <div>
+      <!-- PROFIL -->
+      <div class="card">
+        <div class="card-title"><span class="dot"></span> Profil Pengguna</div>
+        <div class="form-group">
+          <div class="form-label">Berat Badan <span id="lbl-berat">65 kg</span></div>
+          <input type="range" id="berat" min="40" max="120" value="65" oninput="updateLabel('berat',this.value,'kg')">
+        </div>
+        <div class="form-group">
+          <div class="form-label">Tinggi Badan <span id="lbl-tinggi">165 cm</span></div>
+          <input type="range" id="tinggi" min="140" max="200" value="165" oninput="updateLabel('tinggi',this.value,'cm')">
+        </div>
+        <div class="form-group">
+          <div class="form-label">Usia <span id="lbl-usia">25 tahun</span></div>
+          <input type="range" id="usia" min="15" max="70" value="25" oninput="updateLabel('usia',this.value,'tahun')">
+        </div>
+        <div class="form-group">
+          <div class="form-label">Jenis Kelamin</div>
+          <div class="radio-group" id="gender-group">
+            <div class="radio-btn active" onclick="setRadio('gender','pria',this)">👨 Pria</div>
+            <div class="radio-btn" onclick="setRadio('gender','wanita',this)">👩 Wanita</div>
+          </div>
+          <input type="hidden" id="gender" value="pria">
+        </div>
+        <div class="form-group">
+          <div class="form-label">Tingkat Aktivitas</div>
+          <select id="aktivitas">
+            <option value="sedentary">🛋️ Sedentary (tidak aktif)</option>
+            <option value="ringan">🚶 Ringan (1-3x olahraga/minggu)</option>
+            <option value="sedang" selected>🏃 Sedang (3-5x olahraga/minggu)</option>
+            <option value="berat">🏋️ Berat (6-7x olahraga/minggu)</option>
+            <option value="sangat_berat">🏅 Sangat Berat (atlet)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <div class="form-label">Budget Harian <span id="lbl-budget">Rp 80.000</span></div>
+          <input type="range" id="budget" min="30000" max="200000" step="5000" value="80000"
+            oninput="document.getElementById('lbl-budget').textContent='Rp '+parseInt(this.value).toLocaleString('id-ID')">
+        </div>
+
+        <!-- TARGET PREVIEW -->
+        <div id="target-preview" style="background:var(--bg3);border-radius:9px;padding:12px;margin-top:4px">
+          <div class="section-label" style="margin-top:0">Target Nutrisi (estimasi)</div>
+          <div id="target-vals" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;font-size:11px;color:var(--muted)">
+            <div>Kalori: <b id="t-kal" style="color:var(--text)">—</b></div>
+            <div>Protein: <b id="t-pro" style="color:var(--text)">—</b></div>
+            <div>Lemak: <b id="t-lem" style="color:var(--text)">—</b></div>
+            <div>Karbo: <b id="t-kar" style="color:var(--text)">—</b></div>
+            <div>Serat: <b id="t-ser" style="color:var(--text)">—</b></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ALGORITMA -->
+      <div class="card">
+        <div class="card-title"><span class="dot" style="background:var(--accent2)"></span> Konfigurasi Algoritma</div>
+        <div class="form-group">
+          <div class="form-label">Pilih Algoritma</div>
+          <div class="radio-group" id="algo-group">
+            <div class="radio-btn active" onclick="setRadio('algo','ga',this);showAlgoParams('ga')">🧬 Genetic</div>
+            <div class="radio-btn" onclick="setRadio('algo','sa',this);showAlgoParams('sa')">🌡️ SA</div>
+            <div class="radio-btn" onclick="setRadio('algo','hc',this);showAlgoParams('hc')">⛰️ HC</div>
+          </div>
+          <input type="hidden" id="algo" value="ga">
+        </div>
+
+        <!-- GA -->
+        <div id="params-ga" class="algo-params active">
+          <div class="section-label">Parameter Genetic Algorithm</div>
+          <div class="form-group">
+            <div class="form-label">Ukuran Populasi <span id="lbl-pop">30</span></div>
+            <input type="range" id="pop_size" min="10" max="80" value="30" oninput="document.getElementById('lbl-pop').textContent=this.value">
+          </div>
+          <div class="form-group">
+            <div class="form-label">Prob. Crossover <span id="lbl-cx">0.80</span></div>
+            <input type="range" id="cx_prob" min="0.3" max="1.0" step="0.05" value="0.8" oninput="document.getElementById('lbl-cx').textContent=(+this.value).toFixed(2)">
+          </div>
+          <div class="form-group">
+            <div class="form-label">Prob. Mutasi <span id="lbl-mu">0.15</span></div>
+            <input type="range" id="mut_prob" min="0.01" max="0.5" step="0.01" value="0.15" oninput="document.getElementById('lbl-mu').textContent=(+this.value).toFixed(2)">
+          </div>
+          <div class="form-group">
+            <div class="form-label">Jumlah Generasi <span id="lbl-gen">100</span></div>
+            <input type="range" id="max_gen" min="20" max="300" step="10" value="100" oninput="document.getElementById('lbl-gen').textContent=this.value">
+          </div>
+          <div class="form-group">
+            <div class="form-label">Elitisme <span id="lbl-eli">3</span></div>
+            <input type="range" id="elitism" min="0" max="8" value="3" oninput="document.getElementById('lbl-eli').textContent=this.value">
+          </div>
+        </div>
+
+        <!-- SA -->
+        <div id="params-sa" class="algo-params">
+          <div class="section-label">Parameter Simulated Annealing</div>
+          <div class="form-group">
+            <div class="form-label">Suhu Awal (T₀) <span id="lbl-T0">100</span></div>
+            <input type="range" id="T0" min="10" max="500" step="10" value="100" oninput="document.getElementById('lbl-T0').textContent=this.value">
+          </div>
+          <div class="form-group">
+            <div class="form-label">Cooling Rate (α) <span id="lbl-cr">0.970</span></div>
+            <input type="range" id="cooling" min="0.80" max="0.999" step="0.001" value="0.97" oninput="document.getElementById('lbl-cr').textContent=(+this.value).toFixed(3)">
+          </div>
+          <div class="form-group">
+            <div class="form-label">Suhu Minimum <span id="lbl-Tm">0.10</span></div>
+            <input type="range" id="T_min" min="0.01" max="2.0" step="0.01" value="0.1" oninput="document.getElementById('lbl-Tm').textContent=(+this.value).toFixed(2)">
+          </div>
+        </div>
+
+        <!-- HC -->
+        <div id="params-hc" class="algo-params">
+          <div class="section-label">Varian Hill Climbing</div>
+          <div class="radio-group" id="hcvar-group" style="margin-bottom:12px">
+            <div class="radio-btn active" onclick="setRadio('hc_variant','steepest',this)">Steepest Ascent</div>
+            <div class="radio-btn" onclick="setRadio('hc_variant','stochastic',this)">Stochastic</div>
+            <div class="radio-btn" onclick="setRadio('hc_variant','simple',this)">Simple</div>
+          </div>
+          <input type="hidden" id="hc_variant" value="steepest">
+          <div class="form-group">
+            <div class="form-label">Max Iterasi <span id="lbl-iter">300</span></div>
+            <input type="range" id="max_iter" min="50" max="1000" step="50" value="300" oninput="document.getElementById('lbl-iter').textContent=this.value">
+          </div>
+        </div>
+
+        <div class="divider"></div>
+        <button class="btn btn-primary" id="run-btn" onclick="runOptimize()">
+          <span id="run-icon">🚀</span> <span id="run-text">Jalankan Optimasi</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- HASIL -->
+    <div>
+      <!-- Loading -->
+      <div class="loading card" id="loading" style="padding:60px">
+        <div class="spinner"></div>
+        <div class="loading-text" id="loading-text">Menginisialisasi algoritma...</div>
+      </div>
+
+      <!-- Init state -->
+      <div id="init-state" class="card" style="text-align:center;padding:70px 24px">
+        <div style="font-size:56px;margin-bottom:14px">🧠</div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:8px">Siap Mengoptimasi</div>
+        <div style="color:var(--muted);font-size:13px;line-height:1.7">Atur profil pengguna dan pilih algoritma,<br>lalu klik <b style="color:var(--text)">Jalankan Optimasi</b> untuk mulai simulasi.</div>
+      </div>
+
+      <!-- Results (hidden initially) -->
+      <div id="results" style="display:none">
+
+        <!-- Metric row -->
+        <div class="grid-4" style="margin-bottom:14px">
+          <div class="metric-card">
+            <div class="metric-lbl">Fitness Score</div>
+            <div class="metric-val" id="r-fitness" style="color:var(--accent)">—</div>
+            <div class="metric-sub" id="r-algo-lbl">—</div>
+            <div class="metric-bar"><div class="metric-bar-fill" id="bar-fitness" style="background:var(--accent);width:0%"></div></div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-lbl">Total Kalori</div>
+            <div class="metric-val" id="r-kalori" style="color:var(--accent4)">—</div>
+            <div class="metric-sub" id="r-kal-target">Target: —</div>
+            <div class="metric-bar"><div class="metric-bar-fill" id="bar-kalori" style="background:var(--accent4);width:0%"></div></div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-lbl">Total Biaya</div>
+            <div class="metric-val" id="r-harga" style="color:var(--accent3);font-size:15px">—</div>
+            <div class="metric-sub" id="r-harga-budget">Budget: —</div>
+            <div class="metric-bar"><div class="metric-bar-fill" id="bar-harga" style="background:var(--accent3);width:0%"></div></div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-lbl">Waktu Komputasi</div>
+            <div class="metric-val" id="r-time" style="color:var(--accent2)">—</div>
+            <div class="metric-sub" id="r-iters">— iterasi</div>
+            <div class="metric-bar"><div class="metric-bar-fill" id="bar-time" style="background:var(--accent2);width:60%"></div></div>
+          </div>
+        </div>
+
+        <!-- Nutrisi -->
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-title"><span class="dot" style="background:var(--accent3)"></span> Analisis Nutrisi vs Target AKG</div>
+          <div class="grid-5" id="nutr-grid" style="margin-bottom:14px"></div>
+          <div class="chart-wrap" style="height:200px">
+            <canvas id="nutr-chart"></canvas>
+          </div>
+        </div>
+
+        <!-- Menu -->
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-title"><span class="dot" style="background:var(--accent4)"></span> Menu Harian Optimal &nbsp;<span id="r-algo-badge"></span></div>
+          <div id="menu-display"></div>
+        </div>
+
+        <!-- Convergence -->
+        <div class="card">
+          <div class="card-title"><span class="dot" style="background:var(--accent2)"></span> Kurva Konvergensi Algoritma</div>
+          <div class="chart-wrap" style="height:230px">
+            <canvas id="conv-chart"></canvas>
+          </div>
+        </div>
+
+      </div><!-- /results -->
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ PAGE COMPARE -->
+<div id="page-compare" class="page">
+<div class="container">
+  <div class="hero">
+    <div class="hero-icon">📊</div>
+    <div>
+      <h1>Perbandingan Algoritma</h1>
+      <p>Jalankan Hill Climbing, Simulated Annealing, dan Genetic Algorithm secara bersamaan pada profil yang sama, lalu bandingkan performa dan kualitas solusinya.</p>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-bottom:18px">
+    <div class="card">
+      <div class="card-title"><span class="dot"></span> Profil Aktif</div>
+      <div id="cmp-profile-info" style="font-size:13px;color:var(--muted);line-height:2">
+        Profil diambil dari halaman Optimizer.
+      </div>
+      <div class="divider"></div>
+      <button class="btn btn-primary" onclick="runCompare()">⚡ Bandingkan Semua Algoritma</button>
+      <div class="loading" id="cmp-loading" style="padding:20px">
+        <div class="spinner"></div>
+        <span style="font-size:12px;color:var(--muted)">Menjalankan tiga algoritma sekaligus...</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="dot" style="background:var(--accent3)"></span> Target Nutrisi</div>
+      <div id="cmp-target-info" style="color:var(--muted);font-size:13px">Belum ada data. Klik Bandingkan terlebih dahulu.</div>
+    </div>
+  </div>
+
+  <div id="cmp-results" style="display:none">
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-title"><span class="dot" style="background:var(--accent2)"></span> Konvergensi Fitness — Ketiga Algoritma</div>
+      <div class="chart-wrap" style="height:280px">
+        <canvas id="cmp-chart"></canvas>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-title"><span class="dot" style="background:var(--accent4)"></span> Tabel Perbandingan Metrik</div>
+      <div class="food-table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="text-align:left">Metrik</th>
+              <th class="algo-hc">⛰️ Hill Climbing</th>
+              <th class="algo-sa">🌡️ Sim. Annealing</th>
+              <th class="algo-ga">🧬 Genetic Alg.</th>
+            </tr>
+          </thead>
+          <tbody id="cmp-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid-3">
+      <div class="card">
+        <div class="card-title algo-hc">⛰️ Nutrisi HC</div>
+        <div id="cmp-nutr-hc"></div>
+      </div>
+      <div class="card">
+        <div class="card-title algo-sa">🌡️ Nutrisi SA</div>
+        <div id="cmp-nutr-sa"></div>
+      </div>
+      <div class="card">
+        <div class="card-title algo-ga">🧬 Nutrisi GA</div>
+        <div id="cmp-nutr-ga"></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ PAGE FOODS -->
+<div id="page-foods" class="page">
+<div class="container">
+  <div class="hero">
+    <div class="hero-icon">🍽️</div>
+    <div>
+      <h1>Database Makanan</h1>
+      <p>25 item makanan dari berbagai kategori dengan informasi nutrisi lengkap per porsi.</p>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+      <input type="text" id="food-search" placeholder="🔍 Cari makanan..." oninput="filterFoods()" style="flex:1;min-width:160px">
+      <select id="food-filter-waktu" onchange="filterFoods()" style="width:auto;min-width:160px">
+        <option value="">Semua waktu</option>
+        <option value="sarapan">🌅 Sarapan</option>
+        <option value="makan_siang">🍱 Makan Siang</option>
+        <option value="makan_malam">🌙 Makan Malam</option>
+        <option value="snack">🍎 Snack</option>
+      </select>
+    </div>
+    <div class="food-table-wrap">
+      <table class="food-table" id="food-table">
+        <thead>
+          <tr>
+            <th style="text-align:left">Nama Makanan</th>
+            <th>Kalori</th>
+            <th>Protein</th>
+            <th>Lemak</th>
+            <th>Karbo</th>
+            <th>Serat</th>
+            <th>Harga</th>
+            <th>Waktu</th>
+          </tr>
+        </thead>
+        <tbody id="food-tbody">
+          <tr><td colspan="8" style="text-align:center;padding:30px;color:var(--muted)">Memuat data...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="food-count" style="font-size:11px;color:var(--muted2);margin-top:10px;text-align:right"></div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ PAGE ABOUT -->
+<div id="page-about" class="page">
+<div class="container" style="max-width:820px">
+  <div class="hero" style="margin-bottom:20px">
+    <div class="hero-icon">📖</div>
+    <div>
+      <h1>Tentang NutriOpt</h1>
+      <p>Aplikasi simulasi optimasi menu makanan harian untuk Mata Kuliah Kecerdasan Buatan</p>
+    </div>
+  </div>
+
+  <div class="grid-3" style="margin-bottom:16px">
+    <div class="card">
+      <div class="card-title algo-hc">⛰️ Hill Climbing</div>
+      <p style="font-size:12px;color:var(--muted);line-height:1.8">Bergerak ke tetangga terbaik secara iteratif. Tiga varian tersedia:</p>
+      <div class="step-list" style="margin-top:8px">
+        <div class="step-item"><div class="step-num">S</div><div class="step-text"><b>Simple</b> — terima tetangga pertama yang lebih baik</div></div>
+        <div class="step-item"><div class="step-num">St</div><div class="step-text"><b>Steepest</b> — evaluasi semua tetangga, pilih terbaik</div></div>
+        <div class="step-item"><div class="step-num">R</div><div class="step-text"><b>Stochastic</b> — pilih acak dari tetangga yang lebih baik</div></div>
+      </div>
+      <div style="margin-top:12px;background:var(--bg3);border-radius:8px;padding:10px;font-size:11px;font-family:monospace;color:var(--accent3)">
+        x_next = argmax f(neighbor(x))
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title algo-sa">🌡️ Simulated Annealing</div>
+      <p style="font-size:12px;color:var(--muted);line-height:1.8">Terinspirasi dari pendinginan logam. Menerima solusi buruk dengan probabilitas yang menurun seiring waktu.</p>
+      <div class="step-list" style="margin-top:8px">
+        <div class="step-item"><div class="step-num">1</div><div class="step-text">Generate solusi tetangga acak</div></div>
+        <div class="step-item"><div class="step-num">2</div><div class="step-text">Hitung ΔE = f(baru) - f(saat ini)</div></div>
+        <div class="step-item"><div class="step-num">3</div><div class="step-text">Terima jika ΔE > 0 atau P(e^ΔE/T) &gt; random</div></div>
+        <div class="step-item"><div class="step-num">4</div><div class="step-text">Turunkan T: T = T × cooling_rate</div></div>
+      </div>
+      <div style="margin-top:12px;background:var(--bg3);border-radius:8px;padding:10px;font-size:11px;font-family:monospace;color:var(--accent3)">
+        P(accept) = e^(ΔE / T)
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title algo-ga">🧬 Genetic Algorithm</div>
+      <p style="font-size:12px;color:var(--muted);line-height:1.8">Evolusi populasi solusi mengikuti seleksi alam Darwin.</p>
+      <div class="step-list" style="margin-top:8px">
+        <div class="step-item"><div class="step-num">1</div><div class="step-text"><b>Inisialisasi</b> populasi acak</div></div>
+        <div class="step-item"><div class="step-num">2</div><div class="step-text"><b>Seleksi</b> — Tournament Selection</div></div>
+        <div class="step-item"><div class="step-num">3</div><div class="step-text"><b>Crossover</b> — pertukaran slot menu</div></div>
+        <div class="step-item"><div class="step-num">4</div><div class="step-text"><b>Mutasi</b> — ganti item makanan acak</div></div>
+        <div class="step-item"><div class="step-num">5</div><div class="step-text"><b>Elitisme</b> — simpan top-N individu</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title"><span class="dot"></span> Fungsi Fitness & Representasi Solusi</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div>
+        <div class="section-label">Fungsi Fitness</div>
+        <div style="background:var(--bg);border-radius:8px;padding:14px;font-family:monospace;font-size:12px;line-height:2;color:var(--accent3)">
+          f = Σ [-|aktual[k] - target[k]|<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/ target[k] × 100]<br>
+          &nbsp;&nbsp;- penalti_budget<br>
+          &nbsp;&nbsp;+ bonus_variasi × 10
+        </div>
+        <p style="font-size:12px;color:var(--muted);margin-top:10px;line-height:1.7">Fitness mendekati 0 berarti nutrisi sangat sesuai target. Nilai negatif → ada deviasi. Penalti budget jika harga melebihi anggaran.</p>
+      </div>
+      <div>
+        <div class="section-label">Representasi Kromosom</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.8">
+          Setiap solusi merupakan <b style="color:var(--text)">dictionary 5 slot waktu makan</b>:
+        </div>
+        <div style="background:var(--bg);border-radius:8px;padding:14px;font-family:monospace;font-size:11px;line-height:1.9;color:var(--muted);margin-top:8px">
+          {<br>
+          &nbsp;"sarapan": [item1, item2, item3],<br>
+          &nbsp;"snack_pagi": [item1, item2],<br>
+          &nbsp;"makan_siang": [item1, item2, item3],<br>
+          &nbsp;"snack_sore": [item1, item2],<br>
+          &nbsp;"makan_malam": [item1, item2, item3]<br>
+          }
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span class="dot" style="background:var(--accent4)"></span> Referensi</div>
+    <ol style="font-size:13px;color:var(--muted);line-height:2.2;padding-left:18px">
+      <li>Russell, S. & Norvig, P. (2020). <i>Artificial Intelligence: A Modern Approach</i>, 4th Ed. Pearson.</li>
+      <li>Goldberg, D. E. (1989). <i>Genetic Algorithms in Search, Optimization, and Machine Learning</i>. Addison-Wesley.</li>
+      <li>Kirkpatrick, S., Gelatt, C. D., & Vecchi, M. P. (1983). Optimization by Simulated Annealing. <i>Science, 220</i>(4598), 671–680.</li>
+      <li>Harris, J. A. & Benedict, F. G. (1918). A Biometric Study of Basal Metabolism in Man. <i>Proc. Natl. Acad. Sci.</i></li>
+      <li>WHO/FAO/UNU. (2004). <i>Human Energy Requirements</i>. FAO Food and Nutrition Technical Report Series No. 1.</li>
+    </ol>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════ SCRIPT ═══════════════════════════════ -->
+<script>
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let nutrChart=null, convChart=null, cmpChart=null;
+let foodData={};
+
+// ─── PAGES ───────────────────────────────────────────────────────────────────
+function showPage(p){
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(el=>el.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  const idx=['optimizer','compare','foods','about'].indexOf(p);
+  document.querySelectorAll('.nav-tab')[idx]?.classList.add('active');
+  if(p==='foods' && Object.keys(foodData).length===0) loadFoods();
+  if(p==='compare') updateCmpProfile();
+}
+
+// ─── UTILS ───────────────────────────────────────────────────────────────────
+function updateLabel(id,val,unit){
+  document.getElementById('lbl-'+id).textContent=val+(unit?' '+unit:'');
+  updateTargetPreview();
+}
+function setRadio(inputId,val,el){
+  document.getElementById(inputId).value=val;
+  el.closest('.radio-group').querySelectorAll('.radio-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  if(inputId==='gender') updateTargetPreview();
+}
+function showAlgoParams(algo){
+  document.querySelectorAll('.algo-params').forEach(p=>p.classList.remove('active'));
+  document.getElementById('params-'+algo).classList.add('active');
+}
+function destroyChart(c){if(c)c.destroy();return null;}
+
+function getProfile(){
+  return {
+    berat:+document.getElementById('berat').value,
+    tinggi:+document.getElementById('tinggi').value,
+    usia:+document.getElementById('usia').value,
+    gender:document.getElementById('gender').value,
+    aktivitas:document.getElementById('aktivitas').value,
+    budget:+document.getElementById('budget').value,
+  };
+}
+
+function getParams(){
+  const algo=document.getElementById('algo').value;
+  const base={algorithm:algo,...getProfile()};
+  if(algo==='ga') return {...base,
+    pop_size:+document.getElementById('pop_size').value,
+    max_gen:+document.getElementById('max_gen').value,
+    cx_prob:+document.getElementById('cx_prob').value,
+    mut_prob:+document.getElementById('mut_prob').value,
+    elitism:+document.getElementById('elitism').value};
+  if(algo==='sa') return {...base,
+    T0:+document.getElementById('T0').value,
+    cooling:+document.getElementById('cooling').value,
+    T_min:+document.getElementById('T_min').value};
+  return {...base,
+    hc_variant:document.getElementById('hc_variant').value,
+    max_iter:+document.getElementById('max_iter').value};
+}
+
+// ─── TARGET PREVIEW ──────────────────────────────────────────────────────────
+function calcBMR(b,t,u,g){
+  return g==='pria'
+    ? 88.362+(13.397*b)+(4.799*t)-(5.677*u)
+    : 447.593+(9.247*b)+(3.098*t)-(4.330*u);
+}
+function updateTargetPreview(){
+  const b=+document.getElementById('berat').value;
+  const t=+document.getElementById('tinggi').value;
+  const u=+document.getElementById('usia').value;
+  const g=document.getElementById('gender').value;
+  const a=document.getElementById('aktivitas').value;
+  const fMap={sedentary:1.2,ringan:1.375,sedang:1.55,berat:1.725,sangat_berat:1.9};
+  const tdee=calcBMR(b,t,u,g)*fMap[a];
+  document.getElementById('t-kal').textContent=Math.round(tdee)+' kkal';
+  document.getElementById('t-pro').textContent=Math.round(b*1.6)+'g';
+  document.getElementById('t-lem').textContent=Math.round(tdee*.25/9)+'g';
+  document.getElementById('t-kar').textContent=Math.round(tdee*.50/4)+'g';
+  document.getElementById('t-ser').textContent='25g';
+}
+// init
+updateTargetPreview();
+document.getElementById('aktivitas').addEventListener('change',updateTargetPreview);
+
+// ─── NUTRISI HELPERS ─────────────────────────────────────────────────────────
+function nutrCls(a,t){const r=a/t;return r>=.85&&r<=1.15?'good':r>=.7&&r<=1.3?'warn':'bad';}
+const NUTR_COLORS={good:'#43e97b',warn:'#fa8231',bad:'#ff4757'};
+
+function renderNutrGrid(nutr,target){
+  const items=[
+    {k:'kalori',l:'Kalori',u:'kkal',color:'#fa8231'},
+    {k:'protein',l:'Protein',u:'g',color:'#60a5fa'},
+    {k:'lemak',l:'Lemak',u:'g',color:'#f87171'},
+    {k:'karbo',l:'Karbo',u:'g',color:'#a78bfa'},
+    {k:'serat',l:'Serat',u:'g',color:'#43e97b'},
+  ];
+  return items.map(({k,l,u,color})=>{
+    const cls=nutrCls(nutr[k],target[k]);
+    const pct=Math.min(150,Math.round(nutr[k]/target[k]*100));
+    const fillColor=NUTR_COLORS[cls];
+    return `<div class="nutr-item" style="--fill:${Math.min(100,pct)}%;--fill-color:${fillColor}">
+      <div class="nutr-val ${cls}">${Math.round(nutr[k])}</div>
+      <div class="nutr-lbl">${l} (${u})</div>
+      <div class="nutr-tgt">Target ${Math.round(target[k])}</div>
+      <div class="nutr-pct ${cls}">${pct}%</div>
+    </div>`;
+  }).join('');
+}
+
+function renderNutrChart(nutr,target){
+  nutrChart=destroyChart(nutrChart);
+  const ctx=document.getElementById('nutr-chart').getContext('2d');
+  const labels=['Kalori','Protein','Lemak','Karbo','Serat'];
+  const actuals=[nutr.kalori,nutr.protein,nutr.lemak,nutr.karbo,nutr.serat];
+  const targets=[target.kalori,target.protein,target.lemak,target.karbo,target.serat];
+  const pct=actuals.map((v,i)=>Math.round(v/targets[i]*100));
+  const bgColors=pct.map(v=>v>=85&&v<=115?'rgba(67,233,123,.7)':v>=70&&v<=130?'rgba(250,130,49,.7)':'rgba(255,71,87,.7)');
+  nutrChart=new Chart(ctx,{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'Aktual (%)',data:pct,backgroundColor:bgColors,borderRadius:6,borderSkipped:false},
+      {label:'Target (100%)',data:[100,100,100,100,100],backgroundColor:'rgba(255,255,255,.06)',borderRadius:6,borderSkipped:false},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#8b8fa8',font:{size:11},boxWidth:12}},
+        tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y}%`}}},
+      scales:{
+        y:{ticks:{color:'#8b8fa8',callback:v=>v+'%'},grid:{color:'rgba(255,255,255,.04)'},beginAtZero:true,max:150},
+        x:{ticks:{color:'#8b8fa8'},grid:{display:false}}
+      }
+    }
+  });
+}
+
+function renderSmallNutr(nutr,target){
+  return ['kalori','protein','lemak','karbo','serat'].map(k=>`
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+      <span style="color:var(--muted);text-transform:capitalize">${k}</span>
+      <span class="${nutrCls(nutr[k],target[k])}">${Math.round(nutr[k])} <span style="color:var(--muted2)">/ ${Math.round(target[k])}</span></span>
+    </div>`).join('');
+}
+
+// ─── MENU DISPLAY ─────────────────────────────────────────────────────────────
+const SLOT_ICON={sarapan:'🌅',snack_pagi:'🍎',makan_siang:'🍱',snack_sore:'🍊',makan_malam:'🌙'};
+const SLOT_LBL ={sarapan:'Sarapan',snack_pagi:'Snack Pagi',makan_siang:'Makan Siang',snack_sore:'Snack Sore',makan_malam:'Makan Malam'};
+
+function renderMenu(menuDetail){
+  return Object.entries(menuDetail).map(([slot,foods])=>{
+    const slotKal=foods.reduce((s,f)=>s+f.kalori,0);
+    const slotHarga=foods.reduce((s,f)=>s+(f.harga||0),0);
+    return `<div class="meal-wrap">
+      <div class="meal-hdr">
+        <div class="meal-hdr-icon">${SLOT_ICON[slot]||'🍽️'}</div>
+        <div class="meal-hdr-title">${SLOT_LBL[slot]||slot}</div>
+        <div class="meal-hdr-cal">${slotKal} kkal · Rp${slotHarga.toLocaleString('id-ID')}</div>
+      </div>
+      <div class="meal-items">
+        ${foods.map(f=>`<div class="food-chip">
+          <div class="food-name">${f.nama}</div>
+          <div class="food-meta">
+            <span class="kcal">⚡${f.kalori} kkal</span>
+            <span class="prot">💪${f.protein}g</span>
+            <span class="price">💰Rp${(f.harga||0).toLocaleString('id-ID')}</span>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── CONV CHART ──────────────────────────────────────────────────────────────
+function renderConvChart(history,algo){
+  convChart=destroyChart(convChart);
+  const ctx=document.getElementById('conv-chart').getContext('2d');
+  const isGA=algo==='ga';
+  const xKey=isGA?'gen':'iter';
+  const yKey=isGA?'best_fitness':'fitness';
+  const datasets=[{
+    label:'Best Fitness',
+    data:history.map(h=>({x:h[xKey],y:h[yKey]})),
+    borderColor:'#6c63ff',borderWidth:2.5,fill:false,tension:.4,pointRadius:1.5,pointHoverRadius:4,
+  }];
+  if(isGA) datasets.push({
+    label:'Avg Fitness',
+    data:history.map(h=>({x:h.gen,y:h.avg_fitness})),
+    borderColor:'rgba(108,99,255,.35)',borderWidth:1.5,fill:false,tension:.4,pointRadius:0,borderDash:[5,4],
+  });
+  if(algo==='sa') datasets.push({
+    label:'Suhu T',
+    data:history.map(h=>({x:h.iter,y:h.temperature})),
+    borderColor:'rgba(248,113,113,.5)',borderWidth:1,fill:false,yAxisID:'y1',pointRadius:0,
+  });
+  const yScales={
+    y:{ticks:{color:'#8b8fa8'},grid:{color:'rgba(255,255,255,.04)'},title:{display:true,text:'Fitness',color:'#8b8fa8',font:{size:11}}},
+    ...(algo==='sa'?{y1:{position:'right',ticks:{color:'rgba(248,113,113,.6)'},grid:{display:false},title:{display:true,text:'Suhu',color:'rgba(248,113,113,.6)',font:{size:11}}}}:{})
+  };
+  convChart=new Chart(ctx,{
+    type:'line',data:{datasets},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#8b8fa8',font:{size:11},boxWidth:14}}},
+      scales:{x:{type:'linear',ticks:{color:'#8b8fa8'},grid:{color:'rgba(255,255,255,.04)'},title:{display:true,text:isGA?'Generasi':'Iterasi',color:'#8b8fa8',font:{size:11}}},...yScales}
+    }
+  });
+}
+
+// ─── RUN OPTIMIZE ─────────────────────────────────────────────────────────────
+const LOADING_MSGS={
+  ga:['Inisialisasi populasi awal...','Evaluasi fitness generasi...','Crossover & mutasi kromosom...','Seleksi elitisme...','Optimasi konvergen...'],
+  sa:['Mulai pada suhu tinggi T₀...','Eksplorasi solusi tetangga...','Menurunkan suhu (cooling)...','Menerima solusi Boltzmann...','SA mendekati konvergen...'],
+  hc:['Inisialisasi posisi awal...','Evaluasi tetangga...','Bergerak ke tetangga terbaik...','Mencari local optimum...','HC konvergen...'],
+};
+
+async function runOptimize(){
+  const btn=document.getElementById('run-btn');
+  btn.disabled=true;
+  document.getElementById('init-state').style.display='none';
+  document.getElementById('results').style.display='none';
+  document.getElementById('loading').classList.add('active');
+  const algo=document.getElementById('algo').value;
+  const msgs=LOADING_MSGS[algo]||LOADING_MSGS.ga;
+  let mi=0;
+  const lt=setInterval(()=>{
+    document.getElementById('loading-text').textContent=msgs[mi%msgs.length];
+    mi++;
+  },600);
+  try{
+    const res=await fetch('/api/optimize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(getParams())});
+    const data=await res.json();
+    clearInterval(lt);
+    document.getElementById('loading').classList.remove('active');
+    displayResults(data);
+  }catch(e){
+    clearInterval(lt);
+    document.getElementById('loading').classList.remove('active');
+    document.getElementById('init-state').style.display='block';
+    alert('Error: '+e.message);
+  }
+  btn.disabled=false;
+}
+
+function displayResults(data){
+  document.getElementById('results').style.display='block';
+  const algo=document.getElementById('algo').value;
+
+  // Metrics
+  document.getElementById('r-fitness').textContent=data.fitness;
+  document.getElementById('r-algo-lbl').textContent=data.algorithm;
+  document.getElementById('r-kalori').textContent=Math.round(data.nutrition.kalori)+' kkal';
+  document.getElementById('r-kal-target').textContent='Target: '+Math.round(data.target.kalori)+' kkal';
+  document.getElementById('r-harga').textContent='Rp '+Math.round(data.nutrition.harga).toLocaleString('id-ID');
+  document.getElementById('r-harga-budget').textContent='Budget: Rp '+data.budget.toLocaleString('id-ID');
+  document.getElementById('r-time').textContent=data.time_ms+' ms';
+  document.getElementById('r-iters').textContent=(data.iterations||data.generations||'—')+' '+(algo==='ga'?'generasi':'iterasi');
+
+  // Bars
+  const fitPct=Math.min(100,Math.max(0,(data.fitness+100)/100*100));
+  document.getElementById('bar-fitness').style.width=fitPct+'%';
+  document.getElementById('bar-kalori').style.width=Math.min(120,data.nutrition.kalori/data.target.kalori*100)+'%';
+  document.getElementById('bar-harga').style.width=Math.min(120,data.nutrition.harga/data.budget*100)+'%';
+
+  const ALGO_BADGE={hc:'<span class="badge badge-blue">⛰️ Hill Climbing</span>',sa:'<span class="badge badge-red">🌡️ Simulated Annealing</span>',ga:'<span class="badge badge-purple">🧬 Genetic Algorithm</span>'};
+  document.getElementById('r-algo-badge').innerHTML=ALGO_BADGE[algo]||'';
+
+  // Nutrisi
+  document.getElementById('nutr-grid').innerHTML=renderNutrGrid(data.nutrition,data.target);
+  renderNutrChart(data.nutrition,data.target);
+  document.getElementById('menu-display').innerHTML=renderMenu(data.menu_detail);
+  renderConvChart(data.history,algo);
+}
+
+// ─── COMPARE ─────────────────────────────────────────────────────────────────
+function updateCmpProfile(){
+  const p=getProfile();
+  const actMap={sedentary:'Sedentary',ringan:'Ringan',sedang:'Sedang',berat:'Berat',sangat_berat:'Sangat Berat'};
+  document.getElementById('cmp-profile-info').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+      ${[['Berat',p.berat+' kg'],['Tinggi',p.tinggi+' cm'],['Usia',p.usia+' th'],['Gender',p.gender],['Aktivitas',actMap[p.aktivitas]],['Budget','Rp '+p.budget.toLocaleString('id-ID')]].map(([k,v])=>`
+      <div style="font-size:12px;color:var(--muted)">${k}: <b style="color:var(--text)">${v}</b></div>`).join('')}
+    </div>`;
+}
+
+async function runCompare(){
+  updateCmpProfile();
+  document.getElementById('cmp-results').style.display='none';
+  document.getElementById('cmp-loading').classList.add('active');
+  try{
+    const res=await fetch('/api/compare',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(getProfile())});
+    const data=await res.json();
+    document.getElementById('cmp-loading').classList.remove('active');
+    displayCompare(data);
+  }catch(e){
+    document.getElementById('cmp-loading').classList.remove('active');
+    alert('Error: '+e.message);
+  }
+}
+
+function displayCompare(data){
+  document.getElementById('cmp-results').style.display='block';
+  const {hc,sa,ga,target}=data;
+
+  // Target info
+  document.getElementById('cmp-target-info').innerHTML=
+    Object.entries(target).map(([k,v])=>`
+    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px">
+      <span style="color:var(--muted);text-transform:capitalize">${k}</span>
+      <span style="color:var(--text);font-weight:600">${Math.round(v)} ${k==='kalori'?'kkal':'g'}</span>
+    </div>`).join('');
+
+  // Chart
+  cmpChart=destroyChart(cmpChart);
+  const ctx=document.getElementById('cmp-chart').getContext('2d');
+  cmpChart=new Chart(ctx,{
+    type:'line',
+    data:{datasets:[
+      {label:'Hill Climbing',data:hc.history.map(h=>({x:h.iter||0,y:h.fitness||h.best_fitness})),borderColor:'#60a5fa',borderWidth:2,fill:false,tension:.4,pointRadius:0},
+      {label:'Sim. Annealing',data:sa.history.map(h=>({x:h.iter||0,y:h.fitness||h.best_fitness})),borderColor:'#f87171',borderWidth:2,fill:false,tension:.4,pointRadius:0},
+      {label:'Genetic Alg.',data:ga.history.map(h=>({x:h.gen||0,y:h.best_fitness})),borderColor:'#a78bfa',borderWidth:2,fill:false,tension:.4,pointRadius:0},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#8b8fa8',font:{size:12},boxWidth:16}}},
+      scales:{
+        x:{type:'linear',ticks:{color:'#8b8fa8'},grid:{color:'rgba(255,255,255,.04)'},title:{display:true,text:'Iterasi / Generasi',color:'#8b8fa8'}},
+        y:{ticks:{color:'#8b8fa8'},grid:{color:'rgba(255,255,255,.04)'},title:{display:true,text:'Best Fitness',color:'#8b8fa8'}}
+      }
+    }
+  });
+
+  // Table
+  function w(vals,idx,lower=false){const m=lower?Math.min(...vals):Math.max(...vals);return vals[idx]===m?'winner':'';}
+  const rows=[
+    ['🏆 Fitness Score',hc.fitness,sa.fitness,ga.fitness,false],
+    ['⚡ Kalori (kkal)',Math.round(hc.nutrition.kalori),Math.round(sa.nutrition.kalori),Math.round(ga.nutrition.kalori),false],
+    ['💪 Protein (g)',Math.round(hc.nutrition.protein),Math.round(sa.nutrition.protein),Math.round(ga.nutrition.protein),false],
+    ['🧈 Lemak (g)',Math.round(hc.nutrition.lemak),Math.round(sa.nutrition.lemak),Math.round(ga.nutrition.lemak),false],
+    ['🌾 Karbo (g)',Math.round(hc.nutrition.karbo),Math.round(sa.nutrition.karbo),Math.round(ga.nutrition.karbo),false],
+    ['🌿 Serat (g)',Math.round(hc.nutrition.serat),Math.round(sa.nutrition.serat),Math.round(ga.nutrition.serat),false],
+    ['⏱️ Waktu (ms)',hc.time_ms,sa.time_ms,ga.time_ms,true],
+    ['🔁 Iterasi/Gen',hc.iterations,sa.iterations,ga.generations,false],
+    ['💰 Biaya (Rp)',Math.round(hc.nutrition.harga),Math.round(sa.nutrition.harga),Math.round(ga.nutrition.harga),true],
+  ];
+  document.getElementById('cmp-tbody').innerHTML=rows.map(([lbl,hcV,saV,gaV,lower])=>`
+    <tr>
+      <td>${lbl}</td>
+      <td class="algo-hc ${w([hcV,saV,gaV],0,lower)}">${typeof hcV==='number'?hcV.toLocaleString('id-ID'):hcV}</td>
+      <td class="algo-sa ${w([hcV,saV,gaV],1,lower)}">${typeof saV==='number'?saV.toLocaleString('id-ID'):saV}</td>
+      <td class="algo-ga ${w([hcV,saV,gaV],2,lower)}">${typeof gaV==='number'?gaV.toLocaleString('id-ID'):gaV}</td>
+    </tr>`).join('');
+
+  ['hc','sa','ga'].forEach(a=>{
+    document.getElementById('cmp-nutr-'+a).innerHTML=renderSmallNutr(data[a].nutrition,target);
+  });
+}
+
+// ─── FOOD DATABASE ────────────────────────────────────────────────────────────
+async function loadFoods(){
+  try{
+    const res=await fetch('/api/foods');
+    foodData=await res.json();
+    renderFoodTable(foodData);
+  }catch(e){console.error(e);}
+}
+
+function renderFoodTable(data){
+  const rows=Object.entries(data).map(([name,info])=>({name,...info}));
+  const tbody=document.getElementById('food-tbody');
+  tbody.innerHTML=rows.map(f=>`
+    <tr>
+      <td>${f.name}</td>
+      <td>${f.kalori}</td>
+      <td>${f.protein}</td>
+      <td>${f.lemak}</td>
+      <td>${f.karbo}</td>
+      <td>${f.serat}</td>
+      <td>Rp${(f.harga||0).toLocaleString('id-ID')}</td>
+      <td>${f.waktu.map(w=>`<span class="waktu-chip">${w}</span>`).join('')}</td>
+    </tr>`).join('');
+  document.getElementById('food-count').textContent=rows.length+' item makanan';
+}
+
+function filterFoods(){
+  const q=document.getElementById('food-search').value.toLowerCase();
+  const w=document.getElementById('food-filter-waktu').value;
+  const filtered=Object.entries(foodData).filter(([name,info])=>{
+    const matchQ=name.toLowerCase().includes(q);
+    const matchW=!w||info.waktu.includes(w);
+    return matchQ&&matchW;
+  }).reduce((obj,[k,v])=>{obj[k]=v;return obj;},{});
+  renderFoodTable(filtered);
+}
+</script>
+</body>
+</html>
